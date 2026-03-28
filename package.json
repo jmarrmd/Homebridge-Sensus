@@ -1,9 +1,22 @@
 {
   "name": "homebridge-sensus",
+  "displayName": "Homebridge Sensus",
   "version": "1.0.0",
   "description": "Homebridge plugin for Sensus Analytics water meters",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jmarrmd/homebridge-sensus.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jmarrmd/homebridge-sensus/issues"
+  },
+  "homepage": "https://github.com/jmarrmd/homebridge-sensus#readme",
   "main": "dist/index.js",
+  "files": [
+    "dist/",
+    "config.schema.json"
+  ],
   "scripts": {
     "build": "tsc",
     "watch": "tsc --watch",
