@@ -5,8 +5,8 @@
   "license": "MIT",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
-    "watch": "tsc --watch",
+    "build": "npx tsc",
+    "watch": "npx tsc --watch",
     "prepare": "npm run build",
     "prepublishOnly": "npm run build"
   },
