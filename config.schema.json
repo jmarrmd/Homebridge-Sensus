@@ -1,0 +1,69 @@
+{
+  "pluginAlias": "SensusAnalytics",
+  "pluginType": "platform",
+  "singular": false,
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Name",
+        "type": "string",
+        "default": "Sensus Water Meter",
+        "required": true
+      },
+      "baseUrl": {
+        "title": "Base URL",
+        "type": "string",
+        "placeholder": "https://yourcity.sensus-analytics.com",
+        "description": "The base URL of your Sensus Analytics portal (no trailing slash).",
+        "required": true
+      },
+      "username": {
+        "title": "Username",
+        "type": "string",
+        "required": true
+      },
+      "password": {
+        "title": "Password",
+        "type": "string",
+        "required": true
+      },
+      "accountNumber": {
+        "title": "Account Number",
+        "type": "string",
+        "required": true
+      },
+      "meterNumber": {
+        "title": "Meter Number",
+        "type": "string",
+        "required": true
+      },
+      "leakThreshold": {
+        "title": "Leak Alert Threshold (gallons)",
+        "type": "number",
+        "default": 150,
+        "description": "Daily usage (in gallons) above which a leak alert is triggered in HomeKit. Default: 150."
+      },
+      "pollInterval": {
+        "title": "Poll Interval (minutes)",
+        "type": "number",
+        "default": 30,
+        "description": "How often to fetch new data from Sensus Analytics, in minutes. Default: 30."
+      }
+    }
+  },
+  "layout": [
+    "name",
+    "baseUrl",
+    "username",
+    "password",
+    "accountNumber",
+    "meterNumber",
+    {
+      "type": "fieldset",
+      "title": "Advanced Options",
+      "expandable": true,
+      "items": ["leakThreshold", "pollInterval"]
+    }
+  ]
+}
