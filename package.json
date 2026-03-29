@@ -20,7 +20,7 @@
   "scripts": {
     "build": "tsc",
     "watch": "tsc --watch",
-    "prepare": "",
+    "prepare": "true",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
