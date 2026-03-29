@@ -18,6 +18,7 @@
     "config.schema.json"
   ],
   "scripts": {
+    "build": "true",
     "compile": "tsc",
     "watch": "tsc --watch",
     "prepublishOnly": "npm run compile"
