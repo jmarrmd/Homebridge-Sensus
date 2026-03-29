@@ -18,10 +18,9 @@
     "config.schema.json"
   ],
   "scripts": {
-    "build": "true",
-    "compile": "tsc",
+    "build": "tsc",
     "watch": "tsc --watch",
-    "prepublishOnly": "npm run compile"
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "homebridge-plugin",
