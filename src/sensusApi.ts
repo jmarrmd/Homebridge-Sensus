@@ -30,6 +30,9 @@ export interface SensusData {
   hourly: HourlyEntry[];
 }
 
+// 1 CCF (hundred cubic feet) = 748.052 gallons
+const CCF_TO_GALLONS = 748.052;
+
 export class SensusAnalyticsApi {
   private readonly client: AxiosInstance;
   private readonly jar: CookieJar;
@@ -131,16 +134,19 @@ export class SensusAnalyticsApi {
       return null;
     }
 
+    const rawUnit = (device.usageUnit || 'CCF').toUpperCase();
+    const toGallons = rawUnit === 'CCF' ? CCF_TO_GALLONS : 1;
+
     return {
-      dailyUsage: parseFloat(device.dailyUsage) || 0,
-      usageUnit: device.usageUnit || 'CCF',
+      dailyUsage: Math.round(((parseFloat(device.dailyUsage) || 0) * toGallons) * 100) / 100,
+      usageUnit: 'GAL',
       meterAddress: device.meterAddress1 || '',
       lastRead: device.lastRead || '',
       meterId: String(device.meterId || ''),
       meterLat: parseFloat(device.meterLat) || 0,
       meterLong: parseFloat(device.meterLong) || 0,
-      odometer: parseFloat(device.latestReadUsage) || 0,
-      billingUsage: parseFloat(device.billingUsage) || 0,
+      odometer: Math.round(((parseFloat(device.latestReadUsage) || 0) * toGallons) * 100) / 100,
+      billingUsage: Math.round(((parseFloat(device.billingUsage) || 0) * toGallons) * 100) / 100,
     };
   }
 
@@ -181,15 +187,16 @@ export class SensusAnalyticsApi {
     }
 
     // First element is units row: [usageUnit, rainUnit, tempUnit, altUnit]
-    const [usageUnit, rainUnit, tempUnit] = usageArray[0] as string[];
+    const [rawUsageUnit, rainUnit, tempUnit] = usageArray[0] as string[];
     const rows = usageArray.slice(1);
+    const toGallons = (rawUsageUnit ?? 'CCF').toUpperCase() === 'CCF' ? CCF_TO_GALLONS : 1;
 
     return rows.map((row) => ({
       timestamp: row[0] as number,
-      usage: (row[1] as number) ?? 0,
+      usage: Math.round((((row[1] as number) ?? 0) * toGallons) * 100) / 100,
       rain: (row[2] as number) ?? 0,
       temp: (row[3] as number) ?? 0,
-      usageUnit: usageUnit ?? 'CCF',
+      usageUnit: 'GAL',
       rainUnit: rainUnit ?? 'INCHES',
       tempUnit: tempUnit ?? 'FAHRENHEIT',
     }));

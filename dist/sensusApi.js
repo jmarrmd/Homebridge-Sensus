@@ -4,6 +4,8 @@ exports.SensusAnalyticsApi = void 0;
 const axios_1 = require("axios");
 const axios_cookiejar_support_1 = require("axios-cookiejar-support");
 const tough_cookie_1 = require("tough-cookie");
+// 1 CCF (hundred cubic feet) = 748.052 gallons
+const CCF_TO_GALLONS = 748.052;
 class SensusAnalyticsApi {
     constructor(baseUrl, username, password, accountNumber, meterNumber, log) {
         this.baseUrl = baseUrl;
@@ -89,16 +91,18 @@ class SensusAnalyticsApi {
             this.log.warn('Sensus Analytics: unexpected daily data structure');
             return null;
         }
+        const rawUnit = (device.usageUnit || 'CCF').toUpperCase();
+        const toGallons = rawUnit === 'CCF' ? CCF_TO_GALLONS : 1;
         return {
-            dailyUsage: parseFloat(device.dailyUsage) || 0,
-            usageUnit: device.usageUnit || 'CCF',
+            dailyUsage: Math.round(((parseFloat(device.dailyUsage) || 0) * toGallons) * 100) / 100,
+            usageUnit: 'GAL',
             meterAddress: device.meterAddress1 || '',
             lastRead: device.lastRead || '',
             meterId: String(device.meterId || ''),
             meterLat: parseFloat(device.meterLat) || 0,
             meterLong: parseFloat(device.meterLong) || 0,
-            odometer: parseFloat(device.latestReadUsage) || 0,
-            billingUsage: parseFloat(device.billingUsage) || 0,
+            odometer: Math.round(((parseFloat(device.latestReadUsage) || 0) * toGallons) * 100) / 100,
+            billingUsage: Math.round(((parseFloat(device.billingUsage) || 0) * toGallons) * 100) / 100,
         };
     }
     async fetchHourlyData() {
@@ -127,14 +131,15 @@ class SensusAnalyticsApi {
             return [];
         }
         // First element is units row: [usageUnit, rainUnit, tempUnit, altUnit]
-        const [usageUnit, rainUnit, tempUnit] = usageArray[0];
+        const [rawUsageUnit, rainUnit, tempUnit] = usageArray[0];
         const rows = usageArray.slice(1);
+        const toGallons = (rawUsageUnit ?? 'CCF').toUpperCase() === 'CCF' ? CCF_TO_GALLONS : 1;
         return rows.map((row) => ({
             timestamp: row[0],
-            usage: row[1] ?? 0,
+            usage: Math.round(((row[1] ?? 0) * toGallons) * 100) / 100,
             rain: row[2] ?? 0,
             temp: row[3] ?? 0,
-            usageUnit: usageUnit ?? 'CCF',
+            usageUnit: 'GAL',
             rainUnit: rainUnit ?? 'INCHES',
             tempUnit: tempUnit ?? 'FAHRENHEIT',
         }));
