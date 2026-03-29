@@ -1,7 +1,7 @@
 {
   "name": "homebridge-sensus",
   "displayName": "Homebridge Sensus",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Homebridge plugin for Sensus Analytics water meters",
   "license": "MIT",
   "repository": {
@@ -18,7 +18,8 @@
     "config.schema.json"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "true",
+    "compile": "tsc",
     "watch": "tsc --watch"
   },
   "keywords": [
