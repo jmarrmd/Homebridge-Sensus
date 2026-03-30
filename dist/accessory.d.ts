@@ -9,17 +9,14 @@ export declare class SensusWaterMeterAccessory {
     private readonly leakThreshold;
     private readonly pollIntervalMs;
     private readonly eveConsumptionChar;
-    private readonly eveTotalChar;
+    private readonly historyService;
     private lastData;
+    private lastLoggedTimestamps;
     constructor(platform: SensusAnalyticsPlatform, accessory: PlatformAccessory, apiClient: SensusAnalyticsApi);
-    /**
-     * Creates and registers a custom Characteristic on the LeakSensor service.
-     * If the characteristic already exists (restored from cache), it is returned as-is.
-     */
     private addEveCharacteristic;
-    /** Called by HomeKit to read the current leak state. */
     private handleLeakDetectedGet;
-    /** Fetch latest data from Sensus Analytics and push updates to HomeKit. */
+    /** Log hourly entries to fakegato, skipping already-logged timestamps. */
+    private logHourlyHistory;
     private poll;
 }
 //# sourceMappingURL=accessory.d.ts.map
