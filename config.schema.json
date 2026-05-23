@@ -49,6 +49,26 @@
         "type": "number",
         "default": 30,
         "description": "How often to fetch new data from Sensus Analytics, in minutes. Default: 30."
+      },
+      "displayUnit": {
+        "title": "HomeKit Display Unit",
+        "type": "string",
+        "default": "gal",
+        "oneOf": [
+          {
+            "title": "Gallons (gal)",
+            "enum": [
+              "gal"
+            ]
+          },
+          {
+            "title": "Liters (l)",
+            "enum": [
+              "l"
+            ]
+          }
+        ],
+        "description": "The unit of measurement to display in the HomeKit/Eve app. Default: Gallons."
       }
     }
   },
@@ -63,7 +83,11 @@
       "type": "fieldset",
       "title": "Advanced Options",
       "expandable": true,
-      "items": ["leakThreshold", "pollInterval"]
+      "items": [
+        "leakThreshold",
+        "pollInterval",
+        "displayUnit"
+      ]
     }
   ]
 }

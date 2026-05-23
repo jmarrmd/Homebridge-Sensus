@@ -12,6 +12,7 @@ export class SensusWaterMeterAccessory {
   private readonly leakService: Service;
   private readonly leakThreshold: number;
   private readonly pollIntervalMs: number;
+  private readonly displayUnit: string;
 
   // Direct references to Eve custom characteristics to avoid UUID lookups on update
   private readonly eveConsumptionChar: Characteristic;
@@ -32,6 +33,7 @@ export class SensusWaterMeterAccessory {
       ((platform.config.pollInterval as number | undefined) ?? DEFAULT_POLL_INTERVAL_MINUTES) *
       60 *
       1000;
+    this.displayUnit = (platform.config.displayUnit as string | undefined) ?? 'gal';
 
     // ── Accessory Information ─────────────────────────────────────────────
     this.accessory
@@ -84,6 +86,33 @@ export class SensusWaterMeterAccessory {
   }
 
   /**
+   * Helper to get the conversion factor from the Sensus API unit to Gallons.
+   */
+  private getSensusUnitMultiplier(sensusUnit: string): number {
+    const unit = sensusUnit.toUpperCase().trim();
+    if (unit === 'CCF' || unit === 'HCF') {
+      return 748.052; // 1 CCF = 748.052 Gallons
+    }
+    if (unit === 'CF' || unit === 'CUBIC_FOOT' || unit === 'CUBIC_FEET' || unit === 'CUBIC FEET') {
+      return 7.48052; // 1 Cubic Foot = 7.48052 Gallons
+    }
+    if (unit === 'L' || unit === 'LITER' || unit === 'LITERS' || unit === 'LITRES') {
+      return 0.264172; // 1 Liter = 0.264172 Gallons
+    }
+    return 1.0; // Default to 1 (already gallons or unknown)
+  }
+
+  /**
+   * Converts a value in Gallons to the user's configured HomeKit display unit (gal or l).
+   */
+  private convertGallonsToDisplayUnit(gallons: number): number {
+    if (this.displayUnit === 'l') {
+      return gallons * 3.78541; // 1 Gallon = 3.78541 Liters
+    }
+    return gallons; // Default to Gallons
+  }
+
+  /**
    * Creates and registers a custom Characteristic on the LeakSensor service.
    * If the characteristic already exists (restored from cache), it is returned as-is.
    */
@@ -104,7 +133,7 @@ export class SensusWaterMeterAccessory {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const props: any = { format, unit: 'gal', minValue, maxValue, minStep, perms };
+    const props: any = { format, unit: this.displayUnit, minValue, maxValue, minStep, perms };
     const char = new hap.Characteristic(displayName, uuid, props);
     char.setValue(0);
     this.leakService.addCharacteristic(char);
@@ -119,7 +148,10 @@ export class SensusWaterMeterAccessory {
       return LEAK_NOT_DETECTED;
     }
 
-    return this.lastData.daily.dailyUsage > this.leakThreshold
+    const multiplier = this.getSensusUnitMultiplier(this.lastData.daily.usageUnit);
+    const dailyUsageGallons = this.lastData.daily.dailyUsage * multiplier;
+
+    return dailyUsageGallons > this.leakThreshold
       ? LEAK_DETECTED
       : LEAK_NOT_DETECTED;
   }
@@ -138,25 +170,39 @@ export class SensusWaterMeterAccessory {
     const { daily, hourly } = data;
     const { LEAK_DETECTED, LEAK_NOT_DETECTED } = this.platform.Characteristic.LeakDetected;
 
-    const isLeaking = daily.dailyUsage > this.leakThreshold;
+    // Convert raw API values (which can be in CCF, CF, liters, etc.) to Gallons
+    const multiplier = this.getSensusUnitMultiplier(daily.usageUnit);
+    const dailyUsageGallons = daily.dailyUsage * multiplier;
+    const odometerGallons = daily.odometer * multiplier;
+    const billingUsageGallons = daily.billingUsage * multiplier;
 
-    // Push updates to HomeKit
+    // Perform leak check in Gallons
+    const isLeaking = dailyUsageGallons > this.leakThreshold;
+
+    // Push leak status to HomeKit
     this.leakService.updateCharacteristic(
       this.platform.Characteristic.LeakDetected,
       isLeaking ? LEAK_DETECTED : LEAK_NOT_DETECTED,
     );
 
-    // Eve consumption characteristics
-    this.eveConsumptionChar.updateValue(daily.dailyUsage);
-    this.eveTotalChar.updateValue(daily.odometer);
+    // Convert from Gallons to configured display unit (gal or l)
+    const dailyUsageDisplay = this.convertGallonsToDisplayUnit(dailyUsageGallons);
+    const odometerDisplay = this.convertGallonsToDisplayUnit(odometerGallons);
 
-    // Log a summary
+    // Update custom Eve characteristics
+    // - eveConsumptionChar (E863F10D, Current Power / Consumption in Watts) displays daily value
+    this.eveConsumptionChar.updateValue(dailyUsageDisplay);
+    // - eveTotalChar (E863F10C, Total Consumption in kWh) displays cumulative odometer
+    // Multiply by 1000 because Eve app divides E863F10C by 1000 to show kWh
+    this.eveTotalChar.updateValue(odometerDisplay * 1000);
+
+    // Log a summary showing both raw units and HomeKit display units
     const lastHour = hourly.at(-1);
     this.platform.log.info(
       `[${this.accessory.displayName}] ` +
-      `daily=${daily.dailyUsage} ${daily.usageUnit} | ` +
-      `odometer=${daily.odometer} ${daily.usageUnit} | ` +
-      `billing=${daily.billingUsage} ${daily.usageUnit} | ` +
+      `daily=${dailyUsageDisplay.toFixed(2)} ${this.displayUnit} (raw=${daily.dailyUsage} ${daily.usageUnit}) | ` +
+      `odometer=${odometerDisplay.toFixed(2)} ${this.displayUnit} (raw=${daily.odometer} ${daily.usageUnit}) | ` +
+      `billing=${billingUsageGallons.toFixed(2)} gal (raw=${daily.billingUsage} ${daily.usageUnit}) | ` +
       `leak=${isLeaking}` +
       (lastHour ? ` | lastHourUsage=${lastHour.usage} | temp=${lastHour.temp}°F` : ''),
     );
