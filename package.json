@@ -1,8 +1,18 @@
 {
   "name": "homebridge-sensus",
-  "version": "1.1.2",
+  "displayName": "Homebridge Sensus",
+  "version": "1.1.3",
   "description": "Homebridge plugin for Sensus Analytics water meters",
   "license": "MIT",
+  "author": "Josh Marr <joshuamarr@gmail.com>",
+  "homepage": "https://github.com/jmarrmd/Homebridge-Sensus#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jmarrmd/Homebridge-Sensus.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jmarrmd/Homebridge-Sensus/issues"
+  },
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
@@ -21,6 +31,12 @@
     "node": ">=18.0.0",
     "homebridge": ">=1.6.0 <3.0.0"
   },
+  "files": [
+    "dist",
+    "config.schema.json",
+    "README.md",
+    "LICENSE"
+  ],
   "dependencies": {
     "axios": "^1.6.0",
     "axios-cookiejar-support": "^4.0.7",

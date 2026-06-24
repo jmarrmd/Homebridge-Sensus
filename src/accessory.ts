@@ -13,6 +13,7 @@ export class SensusWaterMeterAccessory {
   private readonly leakThreshold: number;
   private readonly pollIntervalMs: number;
   private readonly displayUnit: string;
+  private readonly sensusDisplayMultiplier: number;
 
   // Direct references to Eve custom characteristics to avoid UUID lookups on update
   private readonly eveConsumptionChar: Characteristic;
@@ -34,6 +35,10 @@ export class SensusWaterMeterAccessory {
       60 *
       1000;
     this.displayUnit = (platform.config.displayUnit as string | undefined) ?? 'gal';
+    this.sensusDisplayMultiplier = this.getPositiveNumberConfig(
+      platform.config.sensusDisplayMultiplier,
+      1,
+    );
 
     // ── Accessory Information ─────────────────────────────────────────────
     this.accessory
@@ -102,6 +107,17 @@ export class SensusWaterMeterAccessory {
     return 1.0; // Default to 1 (already gallons or unknown)
   }
 
+  private getPositiveNumberConfig(value: unknown, fallback: number): number {
+    const parsedValue = typeof value === 'string' ? Number(value) : value;
+    return typeof parsedValue === 'number' && Number.isFinite(parsedValue) && parsedValue > 0
+      ? parsedValue
+      : fallback;
+  }
+
+  private convertSensusValueToGallons(value: number, sensusUnit: string): number {
+    return value * this.getSensusUnitMultiplier(sensusUnit) * this.sensusDisplayMultiplier;
+  }
+
   /**
    * Converts a value in Gallons to the user's configured HomeKit display unit (gal or l).
    */
@@ -148,8 +164,10 @@ export class SensusWaterMeterAccessory {
       return LEAK_NOT_DETECTED;
     }
 
-    const multiplier = this.getSensusUnitMultiplier(this.lastData.daily.usageUnit);
-    const dailyUsageGallons = this.lastData.daily.dailyUsage * multiplier;
+    const dailyUsageGallons = this.convertSensusValueToGallons(
+      this.lastData.daily.dailyUsage,
+      this.lastData.daily.usageUnit,
+    );
 
     return dailyUsageGallons > this.leakThreshold
       ? LEAK_DETECTED
@@ -171,10 +189,11 @@ export class SensusWaterMeterAccessory {
     const { LEAK_DETECTED, LEAK_NOT_DETECTED } = this.platform.Characteristic.LeakDetected;
 
     // Convert raw API values (which can be in CCF, CF, liters, etc.) to Gallons
-    const multiplier = this.getSensusUnitMultiplier(daily.usageUnit);
-    const dailyUsageGallons = daily.dailyUsage * multiplier;
-    const odometerGallons = daily.odometer * multiplier;
-    const billingUsageGallons = daily.billingUsage * multiplier;
+    const unitMultiplier = this.getSensusUnitMultiplier(daily.usageUnit);
+    const totalMultiplier = unitMultiplier * this.sensusDisplayMultiplier;
+    const dailyUsageGallons = daily.dailyUsage * totalMultiplier;
+    const odometerGallons = daily.odometer * totalMultiplier;
+    const billingUsageGallons = daily.billingUsage * totalMultiplier;
 
     // Perform leak check in Gallons
     const isLeaking = dailyUsageGallons > this.leakThreshold;
@@ -203,6 +222,7 @@ export class SensusWaterMeterAccessory {
       `daily=${dailyUsageDisplay.toFixed(2)} ${this.displayUnit} (raw=${daily.dailyUsage} ${daily.usageUnit}) | ` +
       `odometer=${odometerDisplay.toFixed(2)} ${this.displayUnit} (raw=${daily.odometer} ${daily.usageUnit}) | ` +
       `billing=${billingUsageGallons.toFixed(2)} gal (raw=${daily.billingUsage} ${daily.usageUnit}) | ` +
+      `conversionMultiplier=${totalMultiplier} | ` +
       `leak=${isLeaking}` +
       (lastHour ? ` | lastHourUsage=${lastHour.usage} | temp=${lastHour.temp}°F` : ''),
     );

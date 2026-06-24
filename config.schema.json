@@ -69,6 +69,13 @@
           }
         ],
         "description": "The unit of measurement to display in the HomeKit/Eve app. Default: Gallons."
+      },
+      "sensusDisplayMultiplier": {
+        "title": "Sensus Display Multiplier",
+        "type": "number",
+        "default": 1,
+        "minimum": 0.001,
+        "description": "Multiplier applied after converting Sensus values to gallons. Use 10 if the Sensus website shows ten times the HomeKit value."
       }
     }
   },
@@ -86,7 +93,8 @@
       "items": [
         "leakThreshold",
         "pollInterval",
-        "displayUnit"
+        "displayUnit",
+        "sensusDisplayMultiplier"
       ]
     }
   ]
